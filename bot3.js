@@ -45,6 +45,7 @@ const URL_BASE = 'https://api.hotelchatai.com/';  // MUST END WITH SLASH
 const BOT_ID = $script.attr('bot');
 const TURNSTILE_KEY = TURNSTILE_KEYS[HOTEL_TURNSTILES[BOT_ID]];
 // console.log('turnstile key'+TURNSTILE_KEY);
+// hi
 
 $('body').append(`
 <div id='helper'>
