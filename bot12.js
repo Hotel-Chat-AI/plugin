@@ -36,7 +36,7 @@ const TURNSTILE_KEYS = [
 const HOTEL_TURNSTILES = {
   'b7': 0, 'journey': 0, 'bchic': 0, 'bfun': 0, 
   'b6': 1, 'bnight': 1, 'bstay': 1, 'ijourney': 1, 'roumei': 1,
-  'starbeauty': 2,
+  'starbeauty': 2, 'website': 2,
 };
 
 const $script = $(hotelHelperScript);
