@@ -4,6 +4,7 @@ function loadScripts(urls, callback) {
   let waiting = urls.length;
   for (let url of urls) {
     let script = document.createElement('script');
+    console.log('a');
     script.setAttribute('src', url);
     script.setAttribute('async', true);
     script.setAttribute('defer', true);
@@ -11,6 +12,7 @@ function loadScripts(urls, callback) {
       if (!--waiting) callback();
     });
     document.body.appendChild(script);
+    console.log('a');
   }
 }
 
@@ -25,6 +27,7 @@ loadScripts([
 $('head').append(`
   <script>tailwind.config = {darkMode: 'selector', prefix: 'tw-'}</script>
   <style>#helper *{z-index:1000000000;}.back_2_top{left:15px!important;}</style>
+  console.log('a');
 `);
 $('html').addClass('tw-dark').css('color-scheme', 'dark');
 
@@ -128,18 +131,20 @@ $('body').append(`
 `);
 
 let widgetId = turnstile.render('#helper', { sitekey: TURNSTILE_KEY });  // turnstile widget id
-
+console.log('a');
 const md = markdownit();
 function getMarkdown(text) {
   let $el = $('<div>'+md.render(text).trim()+'</div>');
   $el.find('a').addClass('tw-underline tw-underline-offset-2 tw-decoration-neutral-400');
   $el.find('ul').addClass('tw-list-disc tw-pl-4');
   $el.find('ol').addClass('tw-list-decimal tw-pl-4');
+  console.log('a');
   return $el;
 }
-
+console.log('a');
 const showButton = () => $('#helper-activate').removeClass('helper-visible');
 const hideButton = () => $('#helper-activate').addClass('helper-visible');
+  console.log('a');
 const showChat = () => {
   localStorage.setItem('wasShowing', true);
   // turnstile.reset();
@@ -151,6 +156,7 @@ const hideChat = () => {
 };
 
 setTimeout(() => $('#helper-box').removeClass('tw-hidden'), 1);
+  console.log('a');
 setTimeout(() => {
   localStorage.getItem('wasShowing') ? showChat() : showButton();
 }, 1000);
@@ -168,6 +174,7 @@ $('#helper-close-button').on('click', () => {
 let blockSends = false;
 const enableSend = () => !blockSends && $('#helper-send-button').addClass('helper-can-send').attr('disabled', false);
 const disableSend = () => $('#helper-send-button').removeClass('helper-can-send').attr('disabled', true);
+  console.log('a');
 const refreshSend = () => $('#helper-input').val().trim() ? enableSend() : disableSend();
 const updateBlockSends = (val) => {
   (blockSends = val) ? $('#helper-ellipsis').show() : $('#helper-ellipsis').hide();
@@ -196,6 +203,7 @@ function updateLocalStorage() {
     if (!messages2[i].content) messages2.splice(i, 1);
   }
   localStorage.setItem('messages', JSON.stringify(messages2));
+  console.log('a');
 }
 function addMessage(text, isUser, updateMessages = true) {
   let idx = messages.length;
