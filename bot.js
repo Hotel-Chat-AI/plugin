@@ -25,8 +25,28 @@ loadScripts([
 $('head').append(`
   <script>tailwind.config = {darkMode: 'selector', prefix: 'tw-'}</script>
   <style>#helper *{z-index:1000000000;}.back_2_top{left:15px!important;}</style>
+  
 `);
 $('html').addClass('tw-dark').css('color-scheme', 'dark');
+
+const TURNSTILE_KEYS = [
+  '0x4AAAAAAAgUy1r4aTn9g0my',
+  '0x4AAAAAAAgm1bM3TuyVObAy',
+  '0x4AAAAAAAgm3UZQWSxcZ4wk',
+];
+const HOTEL_TURNSTILES = {
+  'b7': 0, 'journey': 0, 'bchic': 0, 'bfun': 0, 
+  'b6': 1, 'bnight': 1, 'bstay': 1, 'ijourney': 1, 'roumei': 1,
+  'starbeauty': 2, 'website': 2,
+};
+
+const $script = $(hotelHelperScript);
+const URL_BASE = 'https://api.hotelchatai.com/';  // MUST END WITH SLASH
+// const URL_BASE = 'http://localhost:8080/';  // MUST END WITH SLASH
+const BOT_ID = $script.attr('bot');
+if (!Object.hasOwn(HOTEL_TURNSTILES, BOT_ID)) return;
+const TURNSTILE_KEY = TURNSTILE_KEYS[HOTEL_TURNSTILES[BOT_ID]];
+// console.log('turnstile key'+TURNSTILE_KEY);
 
 $('body').append(`
 <div id='helper'>
@@ -60,7 +80,6 @@ $('body').append(`
           </button>
         </div>
       </div>
-      <div id='helper-turnstile' class='cf-turnstile' data-sitekey='0x4AAAAAAAgUy1r4aTn9g0my' data-callback='helperRemoveTurnstile'></div>
       <div id='helper-message-box' class='tw-min-h-0 tw-h-[32rem] tw-max-w-96 tw-px-6 tw-scroll-py-8 tw-py-8 tw-overflow-auto tw-flex tw-flex-col tw-gap-4'>
         <div id='helper-ellipsis' class='tw-order-last tw-group tw-flex tw-flex-col tw-gap-2 [&.helper-from-user]:tw-items-end' style='display: none;'>
           <div class='tw-flex group-[&.helper-from-user]:tw-justify-end tw-items-center tw-gap-1.5'>
@@ -86,7 +105,7 @@ $('body').append(`
       </div>
       <div class='tw-min-h-16 tw-max-w-96 tw-bg-white dark:tw-bg-neutral-600 tw-text-neutral-800 dark:tw-text-neutral-100 tw-flex tw-border-2 tw-border-transparent focus-within:tw-border-blue-500 dark:focus-within:tw-border-blue-400 tw-rounded-b-3xl tw-shadow-xl dark:tw-shadow-2xl tw-shadow-slate dark:tw-shadow-black tw-z-10' style='z-index:1000000001!important;'>
         <form id='helper-form' class='tw-min-w-0 tw-flex-1 tw-pl-6'>
-          <input type='text' id='helper-input' class='tw-w-full tw-h-full tw-text-base tw-outline-none tw-bg-transparent placeholder:tw-text-neutral-300 dark:placeholder:tw-text-neutral-400' placeholder='Enter message...' disabled>
+          <input type='text' id='helper-input' class='tw-w-full tw-h-full tw-text-base tw-outline-none tw-bg-transparent placeholder:tw-text-neutral-300 dark:placeholder:tw-text-neutral-400' placeholder='Enter message...'>
           <input type='submit' class='tw-hidden'>
         </form>
         <button id='helper-send-button' class='tw-pr-6 tw-pl-4 tw-flex tw-justify-center tw-items-center [&.helper-can-send]:hover:tw-opacity-80 disabled:tw-opacity-50 [&.helper-can-send]:active:tw-opacity-50 tw-duration-200 tw-ease-in-out' disabled='true'>
@@ -108,15 +127,8 @@ $('body').append(`
   </div>
 </div>
 `);
-window.helperRemoveTurnstile = () => {
-  // console.log('Hiding turnstile');
-  // $('#helper-turnstile').hide();
-  $('#helper-input').attr('disabled', false);
-}
 
-const $script = $(hotelHelperScript);
-const URL_BASE = 'https://api.hotelchatai.com/';  // MUST END WITH SLASH
-const BOT_ID = $script.attr('bot');
+let widgetId = turnstile.render('#helper', { sitekey: TURNSTILE_KEY });  // turnstile widget id
 
 const md = markdownit();
 function getMarkdown(text) {
@@ -124,6 +136,7 @@ function getMarkdown(text) {
   $el.find('a').addClass('tw-underline tw-underline-offset-2 tw-decoration-neutral-400');
   $el.find('ul').addClass('tw-list-disc tw-pl-4');
   $el.find('ol').addClass('tw-list-decimal tw-pl-4');
+  
   return $el;
 }
 
@@ -169,20 +182,31 @@ if (localStorage.getItem('messages') == undefined) {
   localStorage.setItem('messages', JSON.stringify([
     {
       role: 'assistant',
-      content: 'Hello, how may I help you today? 😊',
+      content: 'Welcome to Hotel Chat AI! How may I help you today?',
     },
   ]));
 }
 const messages = JSON.parse(localStorage.getItem('messages'));
 // console.log(messages.length);
 
+function scroll() {
+  $('#helper-message-box').scrollTop($('#helper-message-box')[0].scrollHeight);
+}
+function updateLocalStorage() {
+  let messages2 = [...messages];
+  for (let i = messages2.length-1; i >= 0; i--) {
+    if (!messages2[i].content) messages2.splice(i, 1);
+  }
+  localStorage.setItem('messages', JSON.stringify(messages2));
+}
 function addMessage(text, isUser, updateMessages = true) {
+  let idx = messages.length;
   if (updateMessages) {
     messages.push({
       role: isUser ? 'user' : 'assistant',
       content: text,
     });
-    localStorage.setItem('messages', JSON.stringify(messages));
+    updateLocalStorage();
   }
   let msg = $('#helper-message-template').clone().attr('id', '').removeClass('tw-hidden');
   if (isUser) {
@@ -190,16 +214,47 @@ function addMessage(text, isUser, updateMessages = true) {
     msg.find('.helper-text-box').text(text);
   } else {
     msg.find('.helper-text-box').html(getMarkdown(text));
+    if (!text.length && !isUser) {
+      msg.html($('#helper-ellipsis').html())
+    }
   }
-  $('#helper-message-box').append(msg).scrollTop($('#helper-message-box')[0].scrollHeight);
+  $('#helper-message-box').append(msg);
+  scroll();
+  return {msg, idx};
+}
+const asyncIterate = (stream) => (async function* () {
+  const reader = stream.getReader();
+  for (;;) {
+    let {done, value} = await reader.read();
+    if (done) break;
+    yield value;
+  }
+})();
+async function addMessageFromStream(stream, success) {
+  $('#helper-ellipsis').hide();
+  const {msg, idx} = addMessage('', false);
+  const decoder = new TextDecoder();
+  let text = '';
+  for await (const chunk of asyncIterate(stream)) {
+    text += decoder.decode(chunk);
+    if (!text.length) continue;
+    msg.find('.helper-text-box').addClass('tw-py-3').html(getMarkdown(text));
+    messages[idx].content = text;
+    updateLocalStorage();
+    scroll();
+  }
+  updateBlockSends(false);
+  success(text);
 }
 function addSuggestions() {
   const suggestions = [
-    ['🛏️ Rooms', 'What rooms do you offer?'],
+    ['💸 Quote/Pricing', 'Where can I get a quote/custom pricing plan?'],
+    ['🤖 How it Works', 'How does the whole proccess of signing up for our services look like?'],
+    ['✨ Our Top Features', 'What are Hotel Chat AIs Top Features?'],
     ['🪴 Amenities', 'What are some amenities I can expect?'],
-    ['🗼 Attractions', 'What are some attractions I can visit nearby?'],
+    ['🗼 Attractions', 'What are some nearby attractions?'],
     ['🍽️ Restaurants', 'What are some nearby restaurants?'],
-    ['🚄 Transportation', 'What are some ways I can get to the hotel?'],
+    ['🚄 Transportation', 'What are some transportation methods near the hotel?'],
   ];
   let suggestionContainer = $("<div class='tw-flex tw-flex-wrap tw-text-sm tw-gap-2'></div>");
   for (let [name, prompt] of suggestions) {
@@ -221,13 +276,22 @@ for (let n = messages.length, i = 0; i < n; i++) {
   }
 }
 
+let resetting = 0;
 async function getTurnstile() {
-  if (turnstile.getResponse()) return turnstile.getResponse();
-  turnstile.reset();
-  while (!turnstile.getResponse()) {
+  if (!turnstile.isExpired(widgetId) && turnstile.getResponse(widgetId)) return turnstile.getResponse(widgetId);
+  if (!resetting) turnstile.reset(widgetId);
+  while (!turnstile.getResponse(widgetId)) {
     await new Promise(r => setTimeout(r, 50));
   }
-  return turnstile.getResponse();
+  resetting = 0;
+  return turnstile.getResponse(widgetId);
+}
+
+let helpAsked = 0;
+function giveNeedHelp() {
+  if (helpAsked) return;
+  helpAsked = 1;
+  // addMessage(`Need help? You can leave a note [here](${HELP_FORM_URL}), and we'll do our best to get back.`, false);
 }
 
 async function sendMessage() {
@@ -240,14 +304,10 @@ async function sendMessage() {
 
   addMessage(text, true);
   try {
-    // console.log(JSON.stringify({
-    //   messages,
-    //   bot: BOT_ID,
-    //   token: $('#helper [name="cf-turnstile-response"]').val(),
-    // }))
     let cfToken = await getTurnstile();
-    turnstile.reset();
-    let resp = await fetch(URL_BASE+'get_response', {
+    turnstile.reset(widgetId);
+    resetting = 1;
+    let resp = await fetch(URL_BASE+'get_response_stream', {
       method: 'POST',
       headers: {
         'Accept': 'application/json',
@@ -259,31 +319,32 @@ async function sendMessage() {
         token: cfToken,
       }),
     });
-    let respText = await resp.json();
-    addMessage(respText, false);
-
-    const flags = [
-      'not have access',
-      'do not know',
-      '無法訪問',
-      '無法提供',
-      'unable to access',
-      'information',
-      'specific ',
-    ];
-    let flagged = resp.length <= 2;
-    for (const flag of flags) {
-      flagged |= respText.includes(flag);
-    }
-    if (flagged) {
-      logFailure(text, respText);
-    }
+    addMessageFromStream(resp.body, (respText) => {
+      const flags = [
+        'not have access',
+        'do not know',
+        '無法訪問',
+        '無法提供',
+        'unable to access',
+        'information',
+        'specific ',
+      ];
+      let flagged = resp.length <= 2;
+      for (const flag of flags) {
+        flagged |= respText.includes(flag);
+      }
+      if (flagged) {
+        logFailure(text, respText);
+        giveNeedHelp();
+      }
+    });
   } catch (e) {
     console.error(e);
     logFailure(text, '');
+    addMessage('Sorry! An error occurred.', false);
+    updateBlockSends(false);
   }
 
-  updateBlockSends(false);
 }
 $('#helper-form').on('submit', (e) => {
   e.preventDefault();
